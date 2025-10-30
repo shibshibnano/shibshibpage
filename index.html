@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ミームメーカー</title>
+<style>
+  :root {
+    --bg-color: #222831;
+    --panel-color: #393E46;
+    --primary-color: #00ADB5;
+    --text-color: #EEEEEE;
+    --border-color: #4A4E57;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg-color);
+    color: var(--text-color);
+    height: 100vh;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+
+  h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+  }
+
+  canvas {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: 2px solid var(--border-color);
+    cursor: grab;
+    max-width: 100%;
+    max-height: 60vh;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border-radius: 8px;
+  }
+
+  #controls {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  .control-group {
+    background: var(--panel-color);
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .control-group h4 {
+    margin-top: 0;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+  }
+
+  label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    color: #ccc;
+    font-size: 0.9rem;
+  }
+
+  /* Custom File Input */
+  .file-upload-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .file-upload-wrapper input[type=file] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  .file-upload-btn {
+    background: var(--primary-color);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .file-upload-wrapper:hover .file-upload-btn {
+    background: #007A7F;
+  }
+
+  /* Custom Range Slider */
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 10px;
+    background: #555;
+    border-radius: 5px;
+    outline: none;
+    margin-top: 5px;
+    margin-bottom: 15px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid var(--panel-color);
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid var(--panel-color);
+  }
+
+  input[type="color"] {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--border-color);
+    padding: 0;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+
+  #downloadMeme {
+    grid-column: 1 / -1; /* Span full width */
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background 0.3s ease;
+    margin-top: 10px;
+  }
+  #downloadMeme:hover {
+    background: #218838;
+  }
+
+</style>
+</head>
+<body>
+
+<h3>ミームメーカー</h3>
+<canvas id="canvas"></canvas>
+
+<div id="controls">
+  <div class="control-group">
+    <h4>背景画像 (画像1)</h4>
+    <div class="file-upload-wrapper">
+        <div class="file-upload-btn">ファイルを選択</div>
+        <input type="file" id="bgUpload" accept="image/*">
+    </div>
+  </div>
+
+  <div class="control-group" id="image2Controls">
+    <h4>画像2</h4>
+    <div class="file-upload-wrapper">
+        <div class="file-upload-btn">ファイルを選択</div>
+        <input type="file" id="image2Upload" accept="image/*">
+    </div>
+    <div id="image2Sliders" style="display: none;">
+      <label>X位置: <span id="image2XValue">0</span>px</label>
+      <input type="range" id="image2X" min="0" max="500" value="0">
+      <label>Y位置: <span id="image2YValue">0</span>px</label>
+      <input type="range" id="image2Y" min="0" max="500" value="0">
+      <label>回転: <span id="image2RotationValue">0</span>°</label>
+      <input type="range" id="image2Rotation" min="0" max="360" value="0">
+      <label>サイズ: <span id="image2SizeValue">100</span>%</label>
+      <input type="range" id="image2Size" min="10" max="200" value="100">
+    </div>
+  </div>
+
+  <div class="control-group" id="arrowControls">
+    <h4>矢印</h4>
+    <label>X位置: <span id="arrowXValue">0</span>px</label>
+    <input type="range" id="arrowX" min="0" max="500" value="0">
+    <label>Y位置: <span id="arrowYValue">0</span>px</label>
+    <input type="range" id="arrowY" min="0" max="500" value="0">
+    <label>回転: <span id="arrowRotationValue">0</span>°</label>
+    <input type="range" id="arrowRotation" min="0" max="360" value="0">
+    <label>サイズ: <span id="arrowSizeValue">80</span>px</label>
+    <input type="range" id="arrowSize" min="10" max="200" value="80">
+    <label>線の太さ: <span id="arrowLineWidthValue">0</span>px</label>
+    <input type="range" id="arrowLineWidth" min="0" max="10" value="0">
+  </div>
+
+  <div class="control-group" id="circleControls">
+    <h4>円</h4>
+    <label>X位置: <span id="circleXValue">0</span>px</label>
+    <input type="range" id="circleX" min="0" max="500" value="0">
+    <label>Y位置: <span id="circleYValue">0</span>px</label>
+    <input type="range" id="circleY" min="0" max="500" value="0">
+    <label>色:</label>
+    <input type="color" id="circleColor" value="#FF0000">
+    <label>半径: <span id="circleRadiusValue">50</span>px</label>
+    <input type="range" id="circleRadius" min="0" max="100" value="50">
+    <label>線の太さ: <span id="circleLineWidthValue">3</span>px</label>
+    <input type="range" id="circleLineWidth" min="0" max="10" value="3">
+  </div>
+
+  <button id="downloadMeme">ミームをダウンロード</button>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const bgUpload = document.getElementById("bgUpload");
+
+// Controls Divs
+const arrowControlsDiv = document.getElementById("arrowControls");
+const image2ControlsDiv = document.getElementById("image2Controls");
+const circleControlsDiv = document.getElementById("circleControls");
+const image2Sliders = document.getElementById("image2Sliders");
+
+// Arrow Controls
+const arrowXSlider = document.getElementById("arrowX");
+const arrowYSlider = document.getElementById("arrowY");
+const arrowRotationSlider = document.getElementById("arrowRotation");
+const arrowSizeSlider = document.getElementById("arrowSize");
+const arrowXValueSpan = document.getElementById("arrowXValue");
+const arrowYValueSpan = document.getElementById("arrowYValue");
+const arrowRotationValueSpan = document.getElementById("arrowRotationValue");
+const arrowSizeValueSpan = document.getElementById("arrowSizeValue");
+const arrowLineWidthSlider = document.getElementById("arrowLineWidth");
+const arrowLineWidthValueSpan = document.getElementById("arrowLineWidthValue");
+
+// Image 2 Controls
+const image2Upload = document.getElementById("image2Upload");
+const image2XSlider = document.getElementById("image2X");
+const image2YSlider = document.getElementById("image2Y");
+const image2RotationSlider = document.getElementById("image2Rotation");
+const image2SizeSlider = document.getElementById("image2Size");
+const image2XValueSpan = document.getElementById("image2XValue");
+const image2YValueSpan = document.getElementById("image2YValue");
+const image2RotationValueSpan = document.getElementById("image2RotationValue");
+const image2SizeValueSpan = document.getElementById("image2SizeValue");
+
+// Circle Controls
+const circleXSlider = document.getElementById("circleX");
+const circleYSlider = document.getElementById("circleY");
+const circleColorInput = document.getElementById("circleColor");
+const circleRadiusSlider = document.getElementById("circleRadius");
+const circleLineWidthSlider = document.getElementById("circleLineWidth");
+const circleXValueSpan = document.getElementById("circleXValue");
+const circleYValueSpan = document.getElementById("circleYValue");
+const circleRadiusValueSpan = document.getElementById("circleRadiusValue");
+const circleLineWidthValueSpan = document.getElementById("circleLineWidthValue");
+
+const downloadMemeBtn = document.getElementById("downloadMeme");
+
+let bgImage = null;
+let arrowImage = new Image();
+arrowImage.src = "./arrow.png";
+
+let image2 = null;
+
+let arrow = { x: 0, y: 0, angle: 0, size: 80, lineWidth: 0 };
+let image2Props = { x: 0, y: 0, angle: 0, scale: 1 };
+let circle = { x: 0, y: 0, radius: 50, color: '#FF0000', lineWidth: 3 };
+
+let dragging = false;
+let dragOffset = { x: 0, y: 0 };
+let currentObject = null;
+
+function getEventCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  let clientX, clientY;
+  if (e.touches) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function resizeCanvas() {
+  const maxWidth = window.innerWidth - 30; // padding
+  const maxHeight = window.innerHeight * 0.55;
+
+  let width = maxWidth;
+  let height = maxHeight;
+
+  if (bgImage) {
+    const ratio = bgImage.width / bgImage.height;
+    height = width / ratio;
+    if (height > maxHeight) {
+      height = maxHeight;
+      width = height * ratio;
+    }
+  } else {
+    width = Math.min(maxWidth, 600);
+    height = Math.min(maxHeight, 400);
+  }
+
+  canvas.width = width;
+  canvas.height = height;
+
+  // Adjust slider max values
+  [arrowXSlider, image2XSlider, circleXSlider].forEach(s => s.max = canvas.width);
+  [arrowYSlider, image2YSlider, circleYSlider].forEach(s => s.max = canvas.height);
+
+  // Center objects
+  arrow.x = canvas.width / 2; arrow.y = canvas.height / 2;
+  arrowXSlider.value = arrow.x; arrowYSlider.value = arrow.y;
+  arrowXValueSpan.textContent = arrow.x.toFixed(0);
+  arrowYValueSpan.textContent = arrow.y.toFixed(0);
+
+  if(image2) {
+    image2Props.x = canvas.width / 2; image2Props.y = canvas.height / 2;
+    image2XSlider.value = image2Props.x; image2YSlider.value = image2Props.y;
+    image2XValueSpan.textContent = image2Props.x.toFixed(0);
+    image2YValueSpan.textContent = image2Props.y.toFixed(0);
+  }
+
+  circle.x = canvas.width / 2; circle.y = canvas.height / 2;
+  circleXSlider.value = circle.x; circleYSlider.value = circle.y;
+  circleXValueSpan.textContent = circle.x.toFixed(0);
+  circleYValueSpan.textContent = circle.y.toFixed(0);
+
+  draw();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (bgImage) {
+    ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+  }
+
+  // Draw Image 2
+  if (image2) {
+    ctx.save();
+    const img2Width = image2.width * image2Props.scale;
+    const img2Height = image2.height * image2Props.scale;
+    ctx.translate(image2Props.x, image2Props.y);
+    ctx.rotate(image2Props.angle * Math.PI / 180);
+    ctx.drawImage(image2, -img2Width / 2, -img2Height / 2, img2Width, img2Height);
+    ctx.restore();
+  }
+
+  // Draw Arrow
+  ctx.save();
+  ctx.translate(arrow.x, arrow.y);
+  ctx.rotate(arrow.angle * Math.PI / 180);
+  ctx.drawImage(arrowImage, -arrow.size / 2, -arrow.size / 2, arrow.size, arrow.size);
+  if (arrow.lineWidth > 0) {
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = arrow.lineWidth;
+    ctx.strokeRect(-arrow.size / 2, -arrow.size / 2, arrow.size, arrow.size);
+  }
+  ctx.restore();
+
+  // Draw Circle
+  if (circle.radius > 0) {
+    ctx.beginPath();
+    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = circle.color;
+    ctx.lineWidth = circle.lineWidth;
+    ctx.stroke();
+  }
+}
+
+// --- Event Listeners ---
+bgUpload.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    bgImage = new Image();
+    bgImage.onload = resizeCanvas;
+    bgImage.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+image2Upload.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    image2 = new Image();
+    image2.onload = () => {
+      image2Sliders.style.display = 'block';
+      resizeCanvas();
+      image2Props.scale = 1;
+      image2SizeSlider.value = 100;
+      image2SizeValueSpan.textContent = 100;
+      draw();
+    };
+    image2.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// Sliders
+arrowXSlider.addEventListener("input", (e) => { arrow.x = parseFloat(e.target.value); arrowXValueSpan.textContent = arrow.x.toFixed(0); draw(); });
+arrowYSlider.addEventListener("input", (e) => { arrow.y = parseFloat(e.target.value); arrowYValueSpan.textContent = arrow.y.toFixed(0); draw(); });
+arrowRotationSlider.addEventListener("input", (e) => { arrow.angle = parseFloat(e.target.value); arrowRotationValueSpan.textContent = arrow.angle.toFixed(0); draw(); });
+arrowSizeSlider.addEventListener("input", (e) => { arrow.size = parseFloat(e.target.value); arrowSizeValueSpan.textContent = arrow.size.toFixed(0); draw(); });
+arrowLineWidthSlider.addEventListener("input", (e) => { arrow.lineWidth = parseFloat(e.target.value); arrowLineWidthValueSpan.textContent = arrow.lineWidth.toFixed(0); draw(); });
+
+image2XSlider.addEventListener("input", (e) => { image2Props.x = parseFloat(e.target.value); image2XValueSpan.textContent = image2Props.x.toFixed(0); draw(); });
+image2YSlider.addEventListener("input", (e) => { image2Props.y = parseFloat(e.target.value); image2YValueSpan.textContent = image2Props.y.toFixed(0); draw(); });
+image2RotationSlider.addEventListener("input", (e) => { image2Props.angle = parseFloat(e.target.value); image2RotationValueSpan.textContent = image2Props.angle.toFixed(0); draw(); });
+image2SizeSlider.addEventListener("input", (e) => { image2Props.scale = parseFloat(e.target.value) / 100; image2SizeValueSpan.textContent = e.target.value; draw(); });
+
+circleXSlider.addEventListener("input", (e) => { circle.x = parseFloat(e.target.value); circleXValueSpan.textContent = circle.x.toFixed(0); draw(); });
+circleYSlider.addEventListener("input", (e) => { circle.y = parseFloat(e.target.value); circleYValueSpan.textContent = circle.y.toFixed(0); draw(); });
+circleColorInput.addEventListener("input", (e) => { circle.color = e.target.value; draw(); });
+circleRadiusSlider.addEventListener("input", (e) => { circle.radius = parseFloat(e.target.value); circleRadiusValueSpan.textContent = circle.radius.toFixed(0); draw(); });
+circleLineWidthSlider.addEventListener("input", (e) => { circle.lineWidth = parseFloat(e.target.value); circleLineWidthValueSpan.textContent = circle.lineWidth.toFixed(0); draw(); });
+
+
+downloadMemeBtn.addEventListener('click', () => {
+  const dataURL = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = dataURL;
+  a.download = 'meme.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+});
+
+
+// Canvas Interaction
+function handleInteractionStart(e) {
+  e.preventDefault();
+  const { x, y } = getEventCoords(e);
+  currentObject = null;
+
+  // Check image2 first, as it might be on top
+  if (image2) {
+    const dx = x - image2Props.x;
+    const dy = y - image2Props.y;
+    const angle = -image2Props.angle * Math.PI / 180;
+    const rotatedX = dx * Math.cos(angle) - dy * Math.sin(angle);
+    const rotatedY = dx * Math.sin(angle) + dy * Math.cos(angle);
+    const imgWidth = image2.width * image2Props.scale;
+    const imgHeight = image2.height * image2Props.scale;
+    if (Math.abs(rotatedX) < imgWidth / 2 && Math.abs(rotatedY) < imgHeight / 2) {
+      currentObject = image2Props;
+      dragOffset.x = dx;
+      dragOffset.y = dy;
+    }
+  }
+
+  // Check arrow if no object is selected yet
+  if (!currentObject) {
+    const dxArrow = x - arrow.x;
+    const dyArrow = y - arrow.y;
+    const angleArrow = -arrow.angle * Math.PI / 180;
+    const rotatedXArrow = dxArrow * Math.cos(angleArrow) - dyArrow * Math.sin(angleArrow);
+    const rotatedYArrow = dxArrow * Math.sin(angleArrow) + dyArrow * Math.cos(angleArrow);
+    if (Math.abs(rotatedXArrow) < arrow.size / 2 && Math.abs(rotatedYArrow) < arrow.size / 2) {
+      currentObject = arrow;
+      dragOffset.x = dxArrow;
+      dragOffset.y = dyArrow;
+    }
+  }
+
+  // Check circle if no object is selected yet
+  if (!currentObject && circle.radius > 0) {
+    const dxCircle = x - circle.x;
+    const dyCircle = y - circle.y;
+    if (Math.sqrt(dxCircle * dxCircle + dyCircle * dyCircle) < circle.radius + circle.lineWidth / 2) {
+      currentObject = circle;
+      dragOffset.x = dxCircle;
+      dragOffset.y = dyCircle;
+    }
+  }
+
+  if (currentObject) {
+    dragging = true;
+    canvas.style.cursor = "grabbing";
+  }
+}
+
+function handleInteractionMove(e) {
+  if (!dragging) return;
+  e.preventDefault();
+  const { x, y } = getEventCoords(e);
+
+  if (currentObject) {
+    currentObject.x = x - dragOffset.x;
+    currentObject.y = y - dragOffset.y;
+
+    if (currentObject === arrow) {
+      arrowXSlider.value = currentObject.x;
+      arrowYSlider.value = currentObject.y;
+      arrowXValueSpan.textContent = currentObject.x.toFixed(0);
+      arrowYValueSpan.textContent = currentObject.y.toFixed(0);
+    } else if (currentObject === image2Props) {
+      image2XSlider.value = currentObject.x;
+      image2YSlider.value = currentObject.y;
+      image2XValueSpan.textContent = currentObject.x.toFixed(0);
+      image2YValueSpan.textContent = currentObject.y.toFixed(0);
+    } else if (currentObject === circle) {
+      circleXSlider.value = currentObject.x;
+      circleYSlider.value = currentObject.y;
+      circleXValueSpan.textContent = currentObject.x.toFixed(0);
+      circleYValueSpan.textContent = currentObject.y.toFixed(0);
+    }
+    draw();
+  }
+}
+
+function handleInteractionEnd() {
+  dragging = false;
+  currentObject = null;
+  canvas.style.cursor = 'grab';
+}
+
+canvas.addEventListener("mousedown", handleInteractionStart);
+canvas.addEventListener("mousemove", handleInteractionMove);
+canvas.addEventListener("mouseup", handleInteractionEnd);
+canvas.addEventListener("mouseleave", handleInteractionEnd);
+
+canvas.addEventListener("touchstart", handleInteractionStart);
+canvas.addEventListener("touchmove", handleInteractionMove);
+canvas.addEventListener("touchend", handleInteractionEnd);
+canvas.addEventListener("touchcancel", handleInteractionEnd);
+
+window.addEventListener("resize", resizeCanvas);
+arrowImage.onload = draw;
+resizeCanvas();
+</script>
+</body>
+</html>
